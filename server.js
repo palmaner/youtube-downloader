@@ -7,6 +7,11 @@ const PORT = process.env.PORT || 10000;
 
 app.use(cors());
 
+// ✅ Root route (fix for "Cannot GET /")
+app.get('/', (req, res) => {
+    res.send('YouTube Downloader API is running. Use /info or /download.');
+});
+
 app.get('/info', async (req, res) => {
     const url = req.query.url;
     console.log('Fetching info for URL:', url);
