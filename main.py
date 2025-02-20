@@ -17,7 +17,7 @@ def info():
         return jsonify({'error': 'No URL provided'}), 400
 
     try:
-        # Use yt_dlp to extract video info without downloading the video
+        # Use yt_dlp to extract video info without downloading
         ydl_opts = {}
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=False)
