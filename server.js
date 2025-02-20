@@ -1,19 +1,11 @@
 const express = require('express');
-const ytdl = require('@distube/ytdl-core');
-const path = require('path');
 const cors = require('cors');
+const ytdl = require('@distube/ytdl-core');
+
 const app = express();
-const port = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
-app.use(cors({
-    origin: '*'
-}));
-
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'youtube-downloader.html'));
-});
+app.use(cors());
 
 app.get('/info', async (req, res) => {
     const url = req.query.url;
@@ -24,11 +16,19 @@ app.get('/info', async (req, res) => {
     }
 
     try {
-        const info = await ytdl.getInfo(url);
+        const info = await ytdl.getInfo(url, {
+            requestOptions: {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36'
+                }
+            }
+        });
+
         const videoData = {
             title: info.videoDetails.title,
             duration: info.videoDetails.lengthSeconds
         };
+
         res.json(videoData);
     } catch (error) {
         console.error('Error:', error.message);
@@ -41,23 +41,33 @@ app.get('/info', async (req, res) => {
 
 app.get('/download', async (req, res) => {
     const url = req.query.url;
-    console.log('Downloading video for URL:', url);
+    console.log('Downloading video from URL:', url);
 
     if (!url || !ytdl.validateURL(url)) {
-        return res.status(400).send('Invalid YouTube URL');
+        return res.status(400).json({ error: 'Invalid YouTube URL' });
     }
 
     try {
-        const info = await ytdl.getInfo(url);
-        const title = info.videoDetails.title.replace(/[^\w\s]/gi, '');
-        res.header('Content-Disposition', `attachment; filename="${title}.mp4"`);
-        ytdl(url, { filter: 'audioandvideo', quality: 'highest' }).pipe(res);
+        res.header('Content-Disposition', 'attachment; filename="video.mp4"');
+
+        ytdl(url, {
+            filter: 'audioandvideo',
+            quality: 'highest',
+            requestOptions: {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36'
+                }
+            }
+        }).pipe(res);
     } catch (error) {
-        console.error('Error downloading:', error.message);
-        res.status(500).send('Error downloading video');
+        console.error('Error:', error.message);
+        res.status(500).json({ 
+            error: 'Failed to download video', 
+            details: error.message
+        });
     }
 });
 
-app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
