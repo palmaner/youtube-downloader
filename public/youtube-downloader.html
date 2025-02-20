@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Video Downloader</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 400px;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #ff0000;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #cc0000;
+        }
+        button:disabled {
+            background-color: #999;
+            cursor: not-allowed;
+        }
+        #status {
+            margin-top: 15px;
+            color: #555;
+        }
+        #videoInfo {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>YouTube Video Downloader</h1>
+        <input type="text" id="videoUrl" placeholder="Paste YouTube URL (e.g., https://www.youtube.com/watch?v=...)">
+        <button id="downloadBtn">Download Video</button>
+        <div id="status"></div>
+        <div id="videoInfo"></div>
+    </div>
+
+    <script>
+        const videoUrlInput = document.getElementById('videoUrl');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const statusDiv = document.getElementById('status');
+        const videoInfoDiv = document.getElementById('videoInfo');
+
+        downloadBtn.addEventListener('click', async () => {
+            const url = videoUrlInput.value.trim();
+            if (!url) {
+                statusDiv.textContent = 'Please enter a YouTube URL!';
+                return;
+            }
+
+            if (!url.includes('youtube.com/watch?v=')) {
+                statusDiv.textContent = 'Invalid YouTube URL!';
+                return;
+            }
+
+            downloadBtn.disabled = true;
+            statusDiv.textContent = 'Fetching video info...';
+            videoInfoDiv.textContent = '';
+
+            try {
+                const infoResponse = await fetch(`/info?url=${encodeURIComponent(url)}`);
+                if (!infoResponse.ok) {
+                    const errorText = await infoResponse.text();
+                    throw new Error(`Fetch failed: ${infoResponse.status} - ${errorText}`);
+                }
+                const videoData = await infoResponse.json();
+
+                statusDiv.textContent = 'Preparing download...';
+                videoInfoDiv.textContent = `Title: ${videoData.title} | Duration: ${videoData.duration} seconds`;
+
+                await downloadYouTubeVideo(url);
+                statusDiv.textContent = 'Download started! Check your downloads folder.';
+            } catch (error) {
+                statusDiv.textContent = 'Error: ' + error.message;
+            } finally {
+                downloadBtn.disabled = false;
+            }
+        });
+
+        async function downloadYouTubeVideo(url) {
+            const response = await fetch(`/download?url=${encodeURIComponent(url)}`);
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Download failed: ${response.status} - ${errorText}`);
+            }
+
+            const blob = await response.blob();
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = 'video.mp4';
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+                if (filenameMatch) filename = filenameMatch[1];
+            }
+
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(downloadUrl);
+        }
+    </script>
+</body>
+</html>
