@@ -1,15 +1,18 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const ytdl = require('@distube/ytdl-core');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
 app.use(cors());
+// Serve static files from the "public" directory
+app.use(express.static(path.join(__dirname, 'public')));
 
-// ✅ Root route (fix for "Cannot GET /")
+// When a user visits the root, send the HTML file.
 app.get('/', (req, res) => {
-    res.send('YouTube Downloader API is running. Use /info or /download.');
+  res.sendFile(path.join(__dirname, 'public', 'youtube-downloader.html'));
 });
 
 app.get('/info', async (req, res) => {
