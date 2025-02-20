@@ -26,14 +26,14 @@ app.get('/info', async (req, res) => {
 
   try {
     const browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox'
-      ],
-      // Use the installed Chromium binary. You can override this with an env variable if needed.
-      executablePath: process.env.CHROME_PATH || '/usr/bin/chromium-browser'
-    });
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox'
+        ],
+        executablePath: process.env.CHROME_PATH || '/usr/bin/chromium'
+      });
+      
     const page = await browser.newPage();
     
     // Set realistic headers (optional, but helps mimic a real browser)
