@@ -1,13 +1,13 @@
 import os
 import tempfile
-from flask import Flask, request, jsonify, send_file, after_this_request, abort
+from flask import Flask, request, jsonify, send_file, after_this_request
 import yt_dlp
 
 app = Flask(__name__, static_folder='static')
 
 @app.route('/')
 def index():
-    # Serve the HTML interface
+    # Serve the HTML interface from the static folder
     return app.send_static_file('youtube-downloader.html')
 
 @app.route('/info')
@@ -17,7 +17,7 @@ def info():
         return jsonify({'error': 'No URL provided'}), 400
 
     try:
-        # Use yt_dlp to extract video info without downloading
+        # Use yt_dlp to extract video info without downloading the video
         ydl_opts = {}
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=False)
@@ -34,10 +34,10 @@ def download():
         return jsonify({'error': 'No URL provided'}), 400
 
     try:
-        # Create a temporary file to hold the video
+        # Create a temporary file to hold the downloaded video
         tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
         tmp_file_name = tmp_file.name
-        tmp_file.close()  # We'll let yt_dlp write to this file
+        tmp_file.close()
 
         # Set yt_dlp options to download the best available video and merge audio+video if needed
         ydl_opts = {
@@ -48,7 +48,7 @@ def download():
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
-        # Schedule the temporary file for removal after response is sent
+        # Remove the temporary file after sending the response
         @after_this_request
         def remove_file(response):
             try:
