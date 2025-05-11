@@ -1,57 +1,105 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS # Import CORS
-from yt_dlp import YoutubeDL
+# api/download.py
+from http.server import BaseHTTPRequestHandler
 import json
+from yt_dlp import YoutubeDL
+import logging
 
-app = Flask(__name__)
-CORS(app) # Enable CORS for all routes
+# Configure basic logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Vercel expects the Flask app instance to be named 'app'
-# and typically this file would be 'index.py' or the app callable defined in vercel.json
+class handler(BaseHTTPRequestHandler):
 
-@app.route('/', methods=['POST'])
-def handle_download():
-    data = request.get_json()
-    video_url = data.get('url')
+    def _send_cors_headers(self):
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
 
-    if not video_url:
-        return jsonify({"error": "No URL provided"}), 400
+    def _send_json_response(self, status_code, data):
+        self.send_response(status_code)
+        self.send_header('Content-type', 'application/json')
+        self._send_cors_headers()
+        self.end_headers()
+        self.wfile.write(json.dumps(data).encode('utf-8'))
 
-    try:
-        ydl_opts = {
-            'noplaylist': True,
-            'nocheckcertificate': True,
-            'quiet': True,
-            'no_warnings': True,
-            'extract_flat': 'discard_in_playlist', # Get all info for single video
-            'skip_download': True, # We only want to get the URLs
-            'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best', # Prioritize mp4
-        }
+    def do_OPTIONS(self):
+        self.send_response(204) # No Content
+        self._send_cors_headers()
+        self.end_headers()
+
+    def do_POST(self):
+        content_length = int(self.headers.get('Content-Length', 0))
+        post_data_bytes = self.rfile.read(content_length)
         
-        with YoutubeDL(ydl_opts) as ydl:
-            info_dict = ydl.extract_info(video_url, download=False)
+        video_url = None # Initialize video_url
+        try:
+            data = json.loads(post_data_bytes.decode('utf-8'))
+            video_url = data.get('url')
+        except json.JSONDecodeError:
+            logger.error("Invalid JSON input")
+            self._send_json_response(400, {"error": "Invalid JSON input"})
+            return
+        except Exception as e:
+            logger.error(f"Error decoding request body: {str(e)}")
+            self._send_json_response(400, {"error": f"Error decoding request body: {str(e)}"})
+            return
+
+        if not video_url:
+            logger.warning("No URL provided in request")
+            self._send_json_response(400, {"error": "No URL provided"})
+            return
+        
+        logger.info(f"Processing URL: {video_url}")
+
+        try:
+            ydl_opts = {
+                'noplaylist': True,
+                'nocheckcertificate': True,
+                'quiet': True,
+                'no_warnings': True,
+                'extract_flat': 'discard_in_playlist',
+                'skip_download': True,
+                'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+                # Consider adding a source_address or geo_bypass option if needed
+            }
+            
+            with YoutubeDL(ydl_opts) as ydl:
+                logger.info(f"Extracting info for {video_url} with yt-dlp")
+                info_dict = ydl.extract_info(video_url, download=False)
+                logger.info(f"Successfully extracted info for {video_url}")
             
             formats = []
+            
+            def sanitize_value(value):
+                if isinstance(value, (str, int, float, bool, list, dict)) or value is None:
+                    return value
+                if hasattr(value, 'isoformat'): # For datetime objects
+                    return value.isoformat()
+                return str(value) # Fallback to string conversion
+
+            def sanitize_dict(d):
+                if not isinstance(d, dict):
+                    return {}
+                return {k: sanitize_value(v) for k, v in d.items()}
+
             if info_dict.get('formats'):
-                for f in info_dict['formats']:
+                for f_info in info_dict['formats']:
                     # Try to get formats that are likely pre-merged or common
-                    if (f.get('vcodec') != 'none' and f.get('acodec') != 'none' and f.get('ext') == 'mp4') or \
-                       (f.get('ext') == 'mp4' and f.get('protocol') in ['http', 'https']): # Prioritize MP4
+                    if (f_info.get('vcodec') != 'none' and f_info.get('acodec') != 'none' and f_info.get('ext') == 'mp4') or \
+                       (f_info.get('ext') == 'mp4' and f_info.get('protocol') in ['http', 'https']):
                         formats.append({
-                            'format_id': f.get('format_id'),
-                            'ext': f.get('ext'),
-                            'resolution': f.get('resolution') or f.get('format_note'),
-                            'fps': f.get('fps'),
-                            'filesize': f.get('filesize'),
-                            'filesize_approx': f.get('filesize_approx'),
-                            'url': f.get('url'),
-                            'vcodec': f.get('vcodec'),
-                            'acodec': f.get('acodec'),
-                            'format_note': f.get('format_note')
+                            'format_id': f_info.get('format_id'),
+                            'ext': f_info.get('ext'),
+                            'resolution': f_info.get('resolution') or f_info.get('format_note'),
+                            'fps': f_info.get('fps'),
+                            'filesize': f_info.get('filesize'),
+                            'filesize_approx': f_info.get('filesize_approx'),
+                            'url': f_info.get('url'),
+                            'vcodec': f_info.get('vcodec'),
+                            'acodec': f_info.get('acodec'),
+                            'format_note': f_info.get('format_note')
                         })
             
-            # If no specific formats found above, try to get best video and audio separately for some cases
-            # This is a fallback and might require more frontend logic or direct link if possible
             if not formats and info_dict.get('url'): # Direct link for the 'best' chosen by ydl_opts
                  formats.append({
                             'format_id': info_dict.get('format_id', 'best'),
@@ -65,22 +113,10 @@ def handle_download():
                             'format_note': 'Best automatic selection'
                         })
 
-
             if not formats:
-                 return jsonify({"error": "Could not retrieve download links. The video might be protected or unavailable."}), 500
-
-            # Sanitize the response to ensure it's JSON serializable
-            # yt-dlp can sometimes return types that are not directly serializable (e.g. int64)
-            # We are mainly interested in string, int, float, bool, list, dict, None
-            def sanitize_value(value):
-                if isinstance(value, (str, int, float, bool, list, dict)) or value is None:
-                    return value
-                if hasattr(value, 'isoformat'): # for datetime objects
-                    return value.isoformat()
-                return str(value) # Fallback to string conversion
-
-            def sanitize_dict(d):
-                return {k: sanitize_value(v) for k, v in d.items()}
+                 logger.warning(f"No suitable formats found for {video_url}")
+                 self._send_json_response(500, {"error": "Could not retrieve download links. The video might be protected or unavailable."})
+                 return
 
             sanitized_formats = [sanitize_dict(f) for f in formats]
             
@@ -91,13 +127,10 @@ def handle_download():
                 "formats": sanitized_formats
             }
             
-            return jsonify(response_data)
+            logger.info(f"Sending successful response for {video_url}")
+            self._send_json_response(200, response_data)
 
-    except Exception as e:
-        app.logger.error(f"Error processing URL {video_url}: {str(e)}")
-        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
-
-# This part is for local development if you run `python api/download.py`
-# Vercel will use a WSGI server like Gunicorn and find the 'app' object.
-if __name__ == '__main__':
-    app.run(debug=True, port=5001) # Run on a different port if your main app uses 5000
+        except Exception as e:
+            logger.error(f"Error processing URL {video_url if video_url else 'Unknown_URL'}: {type(e).__name__} - {str(e)}", exc_info=True)
+            self._send_json_response(500, {"error": f"An internal server error occurred: {type(e).__name__}"})
+        return
