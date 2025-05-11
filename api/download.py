@@ -130,7 +130,14 @@ class handler(BaseHTTPRequestHandler):
             logger.info(f"Sending successful response for {video_url}")
             self._send_json_response(200, response_data)
 
+        except YoutubeDL.utils.DownloadError as e:
+            error_message = str(e)
+            logger.error(f"DownloadError for {video_url if video_url else 'Unknown_URL'}: {error_message}", exc_info=True)
+            if "confirm you’re not a bot" in error_message or "sign in" in error_message.lower():
+                self._send_json_response(403, {"error": "YouTube requires authentication or has flagged this request (bot detection). This video cannot be processed at this time."})
+            else:
+                self._send_json_response(500, {"error": f"Failed to process video: {type(e).__name__}"}) 
         except Exception as e:
-            logger.error(f"Error processing URL {video_url if video_url else 'Unknown_URL'}: {type(e).__name__} - {str(e)}", exc_info=True)
+            logger.error(f"Generic error processing URL {video_url if video_url else 'Unknown_URL'}: {type(e).__name__} - {str(e)}", exc_info=True)
             self._send_json_response(500, {"error": f"An internal server error occurred: {type(e).__name__}"})
         return
