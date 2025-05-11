@@ -131,30 +131,30 @@ class handler(BaseHTTPRequestHandler):
             logger.info(f"Sending successful response for {video_url}")
             self._send_json_response(200, response_data)
 
-        except YoutubeDL.utils.DownloadError as e:
+        # Catch ANY exception during the process and check its message for bot detection keywords
+        except Exception as e:
+            error_type_name = type(e).__name__
             error_message_full = str(e)
             error_message_lower = error_message_full.lower()
-            
-            logger.error(f"[DEBUG] Full DownloadError message: {error_message_full}") # Log the full error string
-            logger.error(f"[DEBUG] Lowercase DownloadError message: {error_message_lower}") # Log the lowercase string
 
-            # Log individual condition checks
-            check1 = "confirm you’re not a bot" in error_message_lower
-            check2 = "sign in" in error_message_lower
-            check3 = "authentication" in error_message_lower
-            check4 = "verify account" in error_message_lower
-            check5 = "cookies" in error_message_lower # yt-dlp often mentions cookies in these errors
-            logger.error(f"[DEBUG] Condition checks: bot={check1}, signin={check2}, auth={check3}, verify={check4}, cookies={check5}")
+            logger.error(f"[DEBUG] Exception type: {error_type_name}")
+            logger.error(f"[DEBUG] Full exception message: {error_message_full}")
+            logger.error(f"[DEBUG] Lowercase exception message: {error_message_lower}")
 
-            logger.error(f"DownloadError for {video_url if video_url else 'Unknown_URL'}: {error_message_full}", exc_info=True) # Original detailed log
+            # Log individual condition checks for bot detection
+            check_bot = "confirm you’re not a bot" in error_message_lower
+            check_signin = "sign in" in error_message_lower
+            check_auth = "authentication" in error_message_lower
+            check_verify = "verify account" in error_message_lower
+            check_cookies = "cookies" in error_message_lower 
+            logger.error(f"[DEBUG] Bot detection keyword checks: bot={check_bot}, signin={check_signin}, auth={check_auth}, verify={check_verify}, cookies={check_cookies}")
 
-            if check1 or check2 or check3 or check4 or check5:
-                logger.warning(f"Bot detection or sign-in required for {video_url}. Matched one of the keywords.")
+            logger.error(f"Error processing URL {video_url if video_url else 'Unknown_URL'}: {error_type_name} - {error_message_full}", exc_info=True)
+
+            if check_bot or check_signin or check_auth or check_verify or check_cookies:
+                logger.warning(f"Bot detection or sign-in required for {video_url} (Caught in generic Exception). Matched keywords.")
                 self._send_json_response(403, {"error": "This video cannot be processed due to YouTube restrictions (e.g., sign-in or bot verification required). Please try another video."})
             else:
-                logger.warning(f"DownloadError for {video_url} did NOT match bot detection keywords. Sending 500.")
-                self._send_json_response(500, {"error": f"Failed to process video ({type(e).__name__})"}) 
-        except Exception as e:
-            logger.error(f"Generic error processing URL {video_url if video_url else 'Unknown_URL'}: {type(e).__name__} - {str(e)}", exc_info=True)
-            self._send_json_response(500, {"error": f"An unexpected internal server error occurred."})
+                logger.warning(f"Generic exception for {video_url} did NOT match bot detection keywords. Type: {error_type_name}. Sending 500.")
+                self._send_json_response(500, {"error": f"An unexpected server error occurred while processing the video ({error_type_name})."})
         return
