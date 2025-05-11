@@ -137,17 +137,12 @@ class handler(BaseHTTPRequestHandler):
             error_message_full = str(e)
             error_message_lower = error_message_full.lower()
 
-            logger.error(f"[DEBUG] Exception type: {error_type_name}")
-            logger.error(f"[DEBUG] Full exception message: {error_message_full}")
-            logger.error(f"[DEBUG] Lowercase exception message: {error_message_lower}")
-
-            # Log individual condition checks for bot detection
+            # Define conditions for bot detection
             check_bot = "confirm you’re not a bot" in error_message_lower
             check_signin = "sign in" in error_message_lower
             check_auth = "authentication" in error_message_lower
             check_verify = "verify account" in error_message_lower
             check_cookies = "cookies" in error_message_lower 
-            logger.error(f"[DEBUG] Bot detection keyword checks: bot={check_bot}, signin={check_signin}, auth={check_auth}, verify={check_verify}, cookies={check_cookies}")
 
             logger.error(f"Error processing URL {video_url if video_url else 'Unknown_URL'}: {error_type_name} - {error_message_full}", exc_info=True)
 

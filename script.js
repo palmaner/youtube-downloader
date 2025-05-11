@@ -182,7 +182,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error('Download error:', error);
-            resultsContainer.innerHTML = `<p style="color: red;">An unexpected error occurred: ${error.message}. Check the console for more details.</p>`;
+            // error.message should now contain the specific message from the API if the API returned a JSON error body
+            // or a generic one if the fetch itself failed or parsing the error JSON failed.
+            let displayErrorMessage = error.message;
+            if (error.message.includes("Server responded with status")) {
+                // This occurs if response.json() fails after a non-ok status and errorData.error was not present
+                displayErrorMessage = "An error occurred while fetching data from the server. Please try again.";
+            } else if (error.message === "Failed to fetch") {
+                // Network error, API unreachable
+                 displayErrorMessage = "Could not connect to the server. Please check your internet connection and try again.";
+            }
+            resultsContainer.innerHTML = `<p style="color: red;">${displayErrorMessage} Check the console for more details.</p>`;
         }
     };
 
