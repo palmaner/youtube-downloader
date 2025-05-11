@@ -34,16 +34,10 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsContainer.innerHTML = '<p>Fetching download links... Please wait.</p>';
 
         try {
-            // When testing locally, use the full URL for your backend.
-            // When deploying to Vercel, Vercel handles the /api/download routing.
-            const localApiUrl = 'http://127.0.0.1:5001/'; // Flask backend is on port 5001
-            const vercelApiUrl = '/api/download';
+            // Always use the Vercel API path when deployed
+            const apiUrl = '/api/download';
 
-            // Simple check if we are running on localhost for the frontend server
-            const isLocalTest = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            const apiUrl = isLocalTest ? localApiUrl : vercelApiUrl;
-
-            const response = await fetch(apiUrl, { // Use the determined apiUrl
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
