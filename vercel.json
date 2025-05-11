@@ -7,18 +7,26 @@
             "config": { "maxLambdaSize": "50mb" }
         },
         {
-            "src": "package.json",
-            "use": "@vercel/static-build",
-            "config": { "distDir": "public" } 
+            "src": "*.html", 
+            "use": "@vercel/static"
+        },
+        {
+            "src": "style.css",
+            "use": "@vercel/static"
+        },
+        {
+            "src": "script.js",
+            "use": "@vercel/static"
+        },
+        {
+            "src": "images/**",
+            "use": "@vercel/static"
         }
     ],
     "routes": [
         {
             "src": "/api/download",
             "dest": "/api/download.py"
-        },
-        {
-            "handle": "filesystem"
         },
         {
             "src": "/(.*)",
