@@ -1,0 +1,28 @@
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "api/download.py",
+            "use": "@vercel/python",
+            "config": { "maxLambdaSize": "50mb" }
+        },
+        {
+            "src": "package.json",
+            "use": "@vercel/static-build",
+            "config": { "distDir": "public" } 
+        }
+    ],
+    "routes": [
+        {
+            "src": "/api/download",
+            "dest": "/api/download.py"
+        },
+        {
+            "handle": "filesystem"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/index.html"
+        }
+    ]
+}
