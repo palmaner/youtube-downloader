@@ -60,7 +60,8 @@ class handler(BaseHTTPRequestHandler):
                 'extract_flat': 'discard_in_playlist',
                 'skip_download': True,
                 'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-                # Consider adding a source_address or geo_bypass option if needed
+                'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                # 'geo_bypass': False, # Default, but can be explicit if testing geo issues
             }
             
             with YoutubeDL(ydl_opts) as ydl:
@@ -131,13 +132,19 @@ class handler(BaseHTTPRequestHandler):
             self._send_json_response(200, response_data)
 
         except YoutubeDL.utils.DownloadError as e:
-            error_message = str(e)
-            logger.error(f"DownloadError for {video_url if video_url else 'Unknown_URL'}: {error_message}", exc_info=True)
-            if "confirm you’re not a bot" in error_message or "sign in" in error_message.lower():
-                self._send_json_response(403, {"error": "YouTube requires authentication or has flagged this request (bot detection). This video cannot be processed at this time."})
+            error_message_lower = str(e).lower()
+            logger.error(f"DownloadError for {video_url if video_url else 'Unknown_URL'}: {str(e)}", exc_info=True)
+            # Broader check for common phrases related to bot detection or sign-in requirements
+            if "confirm you’re not a bot" in error_message_lower or \
+               "sign in" in error_message_lower or \
+               "authentication" in error_message_lower or \
+               "verify account" in error_message_lower or \
+               "cookies" in error_message_lower: # Often mentioned in these errors
+                logger.warning(f"Bot detection or sign-in required for {video_url}")
+                self._send_json_response(403, {"error": "This video cannot be processed due to YouTube restrictions (e.g., sign-in or bot verification required). Please try another video."})
             else:
-                self._send_json_response(500, {"error": f"Failed to process video: {type(e).__name__}"}) 
+                self._send_json_response(500, {"error": f"Failed to process video ({type(e).__name__})"}) 
         except Exception as e:
             logger.error(f"Generic error processing URL {video_url if video_url else 'Unknown_URL'}: {type(e).__name__} - {str(e)}", exc_info=True)
-            self._send_json_response(500, {"error": f"An internal server error occurred: {type(e).__name__}"})
+            self._send_json_response(500, {"error": f"An unexpected internal server error occurred."})
         return
