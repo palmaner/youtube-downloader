@@ -3,14 +3,14 @@ body {
     font-family: 'Arial', sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #f4f4f4;
-    color: #333;
+    background-color: #f4f4f4; /* Keeping light gray for overall background */
+    color: #3C2928; /* My-Color-Theme-5-hex */
     line-height: 1.6;
 }
 
 a {
     text-decoration: none;
-    color: #3498db;
+    color: #E61501; /* My-Color-Theme-3-hex */
 }
 
 ul {
@@ -25,8 +25,8 @@ img {
 
 /* Header & Navigation */
 header {
-    background-color: #333;
-    color: #fff;
+    background-color: #3C2928; /* My-Color-Theme-5-hex */
+    color: #fff; /* Keeping white for contrast */
     padding: 1rem 0;
     position: sticky;
     top: 0;
@@ -63,16 +63,16 @@ nav ul li a {
 }
 
 nav ul li a:hover {
-    background-color: #555;
+    background-color: #913830; /* My-Color-Theme-2-hex */
     border-radius: 5px;
 }
 
 /* Hero Section */
 #hero {
-    background: linear-gradient(rgba(52, 152, 219, 0.8), rgba(41, 128, 185, 0.8)), url('hero-background.jpg'); /* Add a background image URL here */
+    background: linear-gradient(rgba(187, 44, 31, 0.85), rgba(145, 56, 48, 0.85)), url('hero-background.jpg'); /* My-Color-Theme-1-rgba, My-Color-Theme-2-rgba */
     background-size: cover;
     background-position: center;
-    color: #fff;
+    color: #fff; /* Keeping white for contrast */
     text-align: center;
     padding: 100px 20px;
     min-height: 70vh;
@@ -118,7 +118,7 @@ nav ul li a:hover {
 .search-container button {
     padding: 15px 30px;
     font-size: 1.1em;
-    background-color: #e67e22; /* Orange color for download button */
+    background-color: #E61501; /* My-Color-Theme-3-hex */
     color: #fff;
     border: none;
     border-radius: 0 5px 5px 0;
@@ -127,7 +127,7 @@ nav ul li a:hover {
 }
 
 .search-container button:hover {
-    background-color: #d35400; /* Darker orange on hover */
+    background-color: #BB2C1F; /* My-Color-Theme-1-hex */
 }
 
 /* Sections General Styling */
@@ -139,7 +139,7 @@ section {
 section h2 {
     font-size: 2.8em;
     margin-bottom: 40px;
-    color: #333;
+    color: #3C2928; /* My-Color-Theme-5-hex */
     position: relative;
     padding-bottom: 10px;
 }
@@ -149,7 +149,7 @@ section h2::after {
     display: block;
     width: 60px;
     height: 4px;
-    background-color: #3498db;
+    background-color: #E61501; /* My-Color-Theme-3-hex */
     margin: 10px auto 0;
 }
 
@@ -181,32 +181,28 @@ section h2::after {
 }
 
 .feature-item img {
-    width: 60px; /* Placeholder for icon size */
+    width: 60px; 
     height: 60px;
     margin-bottom: 20px;
-    /* background-color: #ddd; /* Placeholder background for icon */
-    /* border-radius: 50%; /* Placeholder shape for icon */
     display: inline-block;
-    line-height: 60px; /* Vertically center text if using text as placeholder */
-    text-align: center; /* Horizontally center text if using text as placeholder */
-    font-size: 1.5em; /* Placeholder text size */
-    color: #3498db; /* Placeholder text color */
+    /* Add your actual icon images via the src attribute in index.html */
+    /* Ensure actual icons have appropriate alt text in index.html */
 }
 
 .feature-item h3 {
     font-size: 1.5em;
     margin-bottom: 10px;
-    color: #3498db;
+    color: #E61501; /* My-Color-Theme-3-hex */
 }
 
 .feature-item p {
     font-size: 1em;
-    color: #555;
+    color: #663733; /* My-Color-Theme-4-hex */
 }
 
 /* How It Works Section */
 #how-it-works {
-    background-color: #eef7ff; /* Light blue background */
+    background-color: #fff; /* Changed from light blue to white for neutrality */
 }
 
 .steps-container {
@@ -240,8 +236,8 @@ section h2::after {
 .step-number {
     font-size: 2em;
     font-weight: bold;
-    color: #fff;
-    background-color: #3498db;
+    color: #fff; /* Keeping white for contrast */
+    background-color: #E61501; /* My-Color-Theme-3-hex */
     width: 50px;
     height: 50px;
     line-height: 50px;
@@ -252,12 +248,12 @@ section h2::after {
 .step h3 {
     font-size: 1.5em;
     margin-bottom: 10px;
-    color: #333;
+    color: #3C2928; /* My-Color-Theme-5-hex */
 }
 
 .step p {
     font-size: 1em;
-    color: #555;
+    color: #663733; /* My-Color-Theme-4-hex */
 }
 
 /* Download Section (repeated styles from Hero for consistency) */
@@ -289,20 +285,20 @@ section h2::after {
 .faq-item h3 {
     font-size: 1.3em;
     margin-bottom: 10px;
-    color: #3498db;
+    color: #E61501; /* My-Color-Theme-3-hex */
     cursor: pointer;
 }
 
 .faq-item p {
     font-size: 1em;
-    color: #555;
+    color: #663733; /* My-Color-Theme-4-hex */
     display: block; /* Can be toggled with JS for accordion effect */
 }
 
 /* Footer */
 footer {
-    background-color: #2c3e50;
-    color: #ecf0f1;
+    background-color: #3B3231; /* My-Color-Theme-6-hex */
+    color: #ecf0f1; /* Keeping light gray for contrast */
     text-align: center;
     padding: 30px 20px;
 }
@@ -312,11 +308,12 @@ footer p {
 }
 
 footer a {
-    color: #3498db;
+    color: #E61501; /* My-Color-Theme-3-hex */
 }
 
 footer a:hover {
     text-decoration: underline;
+    color: #BB2C1F; /* My-Color-Theme-1-hex for hover */
 }
 
 /* Responsive Design */

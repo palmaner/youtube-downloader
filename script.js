@@ -34,7 +34,16 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsContainer.innerHTML = '<p>Fetching download links... Please wait.</p>';
 
         try {
-            const response = await fetch('/api/download', {
+            // When testing locally, use the full URL for your backend.
+            // When deploying to Vercel, Vercel handles the /api/download routing.
+            const localApiUrl = 'http://127.0.0.1:5001/'; // Flask backend is on port 5001
+            const vercelApiUrl = '/api/download';
+
+            // Simple check if we are running on localhost for the frontend server
+            const isLocalTest = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const apiUrl = isLocalTest ? localApiUrl : vercelApiUrl;
+
+            const response = await fetch(apiUrl, { // Use the determined apiUrl
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -64,6 +73,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.formats && data.formats.length > 0) {
                 htmlContent += '<ul style="list-style-type: none; padding: 0;">';
                 data.formats.forEach(format => {
+                    const safeTitle = data.title ? data.title.replace(/[\\/:*?"<>|]/g, '') : 'video';
+                    const fileName = `${safeTitle}.${format.ext}`;
+                    // We'll use a class to identify these links and add data attributes for URL and filename
                     htmlContent += `<li style="margin-bottom: 10px; padding: 10px; border: 1px solid #eee; border-radius: 5px;">
                         <strong>Resolution:</strong> ${format.resolution || format.format_note || 'N/A'} | 
                         <strong>Ext:</strong> ${format.ext} | 
@@ -71,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <strong>VCodec:</strong> ${format.vcodec || 'N/A'} | 
                         <strong>ACodec:</strong> ${format.acodec || 'N/A'}
                         <br>
-                        <a href="${format.url}" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin-top: 5px; padding: 8px 12px; background-color: #28a745; color: white; text-decoration: none; border-radius: 4px;">Download</a>
+                        <a href="${format.url}" class="download-video-link" data-filename="${fileName}" rel="noopener noreferrer" style="display: inline-block; margin-top: 5px; padding: 8px 12px; background-color: #BB2C1F; color: white; text-decoration: none; border-radius: 4px; transition: background-color 0.3s ease;">Download ${format.ext} (${format.resolution || format.format_note || 'N/A'})</a>
                     </li>`;
                 });
                 htmlContent += '</ul>';
@@ -80,6 +92,99 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             resultsContainer.innerHTML = htmlContent;
+
+            // Add event listeners to the newly created download links
+            document.querySelectorAll('.download-video-link').forEach(link => {
+                link.addEventListener('click', async function(event) { // Made async for await
+                    event.preventDefault(); // Stop the default link navigation
+
+                    const videoUrl = this.getAttribute('href'); // Get the actual video URL
+                    const suggestedFilename = this.dataset.filename;
+                    const originalButtonText = this.textContent;
+                    const originalBgColor = '#BB2C1F'; // Default from your palette
+                    const hoverBgColor = '#913830';    // Hover from your palette
+
+                    // Update hover logic to respect button state
+                    this.onmouseover = function() { 
+                        if(this.textContent === originalButtonText) this.style.backgroundColor = hoverBgColor; 
+                    };
+                    this.onmouseout = function() { 
+                        if(this.textContent === originalButtonText) this.style.backgroundColor = originalBgColor; 
+                    };
+
+                    try {
+                        this.textContent = 'Downloading...';
+                        this.style.backgroundColor = '#663733'; // Theme color for disabled-like state
+                        this.style.pointerEvents = 'none'; // Disable further clicks
+
+                        // Fetch the video as a blob
+                        // Note: This requires the server (googlevideo.com) to have permissive CORS headers.
+                        const response = await fetch(videoUrl);
+
+                        if (!response.ok) {
+                            let errorDetail = `Server responded with ${response.status} ${response.statusText}`;
+                            try {
+                                // Try to parse JSON error if available, otherwise use text
+                                const errorText = await response.text();
+                                const errJson = JSON.parse(errorText); // This might fail if not JSON
+                                errorDetail = errJson.error || errorDetail;
+                            } catch (e) { /* Ignore if response is not json or parsing fails */ }
+                            throw new Error(`Failed to fetch video: ${errorDetail}`);
+                        }
+
+                        const blob = await response.blob();
+
+                        // Create an object URL for the blob
+                        const objectUrl = URL.createObjectURL(blob);
+
+                        // Create a temporary link element to trigger download
+                        const tempLink = document.createElement('a');
+                        tempLink.href = objectUrl;
+                        tempLink.setAttribute('download', suggestedFilename);
+                        
+                        document.body.appendChild(tempLink);
+                        tempLink.click(); // Programmatically click the link
+                        
+                        // Clean up
+                        document.body.removeChild(tempLink);
+                        URL.revokeObjectURL(objectUrl); // Release the object URL
+
+                        this.textContent = 'Downloaded!';
+                        this.style.backgroundColor = originalBgColor; // Revert to original color
+                        setTimeout(() => {
+                            this.textContent = originalButtonText;
+                            this.style.pointerEvents = 'auto'; // Re-enable clicks
+                            // Re-apply original mouseout color if not hovering
+                            if (document.querySelector(':hover') !== this) {
+                                this.style.backgroundColor = originalBgColor;
+                            }
+                        }, 2000);
+
+                    } catch (err) {
+                        console.error('Download by Blob failed:', err);
+                        // Fallback to the previous method (programmatic link click on original URL)
+                        console.log('Attempting fallback download method (direct link click)...');
+                        const fallbackLink = document.createElement('a');
+                        fallbackLink.href = videoUrl; // Use the original videoUrl for fallback
+                        fallbackLink.setAttribute('download', suggestedFilename);
+                        fallbackLink.setAttribute('target', '_blank'); // For fallback, opening in new tab is acceptable if download fails
+                        document.body.appendChild(fallbackLink);
+                        fallbackLink.click();
+                        document.body.removeChild(fallbackLink);
+                        
+                        this.textContent = 'Error (Using Fallback)';
+                        this.style.backgroundColor = '#E61501'; // Error color from your palette
+                        setTimeout(() => {
+                            this.textContent = originalButtonText;
+                            this.style.backgroundColor = originalBgColor;
+                            this.style.pointerEvents = 'auto';
+                            if (document.querySelector(':hover') !== this) {
+                                this.style.backgroundColor = originalBgColor;
+                            }
+                        }, 3000);
+                    }
+                });
+            });
 
         } catch (error) {
             console.error('Download error:', error);

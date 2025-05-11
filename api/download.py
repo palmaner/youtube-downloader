@@ -1,8 +1,10 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS # Import CORS
 from yt_dlp import YoutubeDL
 import json
 
 app = Flask(__name__)
+CORS(app) # Enable CORS for all routes
 
 # Vercel expects the Flask app instance to be named 'app'
 # and typically this file would be 'index.py' or the app callable defined in vercel.json
